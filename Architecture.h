@@ -1,3 +1,6 @@
+#ifndef THE_ARCHITECTURE_H
+#define THE_ARCHITECTURE_H
+
 /**
  * Architecture (and compile time Mocking)
  * ---------------------------------------
@@ -111,3 +114,5 @@ ADD_IMPLEMENTATION(Entity);
 #define END_MOCK_NAMESPACE             }
 
 #endif // ARCH_COMPILING_TESTS
+
+#endif // THE_ARCHITECTURE_H
