@@ -1,10 +1,10 @@
-Software Architecture, Decoupling (and mock unit-testing)
-=========================================================
+Software Architecture, Decoupling (and unit-testing with mocks)
+===============================================================
 
 This single header file C++ project enables implementation of software architecture,
 dependency inversion (at compile time), and mock based unit testing. It attempts to
 do so despite eliminating much of the code typically associated with software containing
-heavy use of the dependency inversion pattern.
+heavy use of the dependency inversion and dependency injection patterns.
 
 Usage
 -----
@@ -197,12 +197,30 @@ I am going to suggest the need for these patterns boils down to two significant 
    isolated from the rest of the system. This allows the test to check just the components
    code and limits the need for the tests to change when other components change behaviour.
 
-* The system's interactions with interfaces like ConcreteInterface are listed in specific API's.
+* The system's interactions with interfaces like ConcreteInterface are listed in specific APIs.
 
    This one is particularly important when dealing with things like databases or external
    frameworks. The benefit being that these interactions (things like SQL statements) are
    limited to a smaller number of parts of the software and the expections should be well
    defined for such interactions (e.g due to the interface method names).
+
+* Most compile time incompatibilities between the interface and it's consumers are checked.
+
+   In particular when a mock interface gets out of line with the production interface this
+   will typically (in C++ or other strongly typed languages) cause compile errors to be
+   produced. It is a very useful advantage to strongly typed languages that these problems
+   become apparent at compile time and prior to runtime.
+
+* The resulting system is organised into a strict component hierarchy.
+
+   When the components are organised into this structure spanning enough of the system it
+   becomes possible to group the components into libraries and build them in order. It's
+   worth noting for later however that some of the components will only have been built in
+   abstract form inside the earlier components and will contain no usable versions of the
+   interfaces implemented. So more of the libraries will be needed in order to usefully
+   instantiate these interfaces anyway.
+   In addition it seems likely that such a hierarchical organisation is somewhat easier
+   for programmers to understand and conceptualise.
 
 So what's the problem(s) then?
 ------------------------------
@@ -264,14 +282,25 @@ parts of a large program is a much greater problem than any weaknesses presented
    When using the template function implementation of this pattern then this code will require
    more time to build.
 
+* The structure of the components frequently reflects the demands of the architecture, not the demands of the software.
+
+   When we examine design patterns the examples will typically present them in the context
+   of what the software does (which is natural). In strongly architectured systems on the
+   other hand a lot of the design patterns are used to implement architectural abstractions
+   and facilitate unit-testing. As this becomes more prevalent the structure of the
+   architecture can become a distraction from the structure of the system.
+
 What is the alternative?
 ------------------------
 The alternative I propose here I have called compile time dependency inversion. The idea is
 very simple, we will compile the code with compile time dependencies between the users and
 actual component implementations and when writing unit tests we will instead compile the
 code under test against mock implementations. The implementation details to achieve this
-are easy to enough to observe from the header file itself. Also importantly the mechansims
-used have been a part of even the C++98 standard.
+are easy to enough to observe from the header file itself. Briefly the implementation in the
+following examples is written into a namespace ConcreteThings_impl and during the
+compilation of the implementation this namespace has already been included into the ConcreteThings
+namespace via a using namespace statement when the Architecture.h header file was #included. Also
+importantly the mechansims used have been a part of even the C++98 standard.
 
 The earlier example of dependency inversion may now be written as follows,
 
@@ -304,7 +333,11 @@ ARCH_NAMESPACE(AbstractThings) {
 }
 ```
 
-And amended with an example unit-test.
+And amended with an example unit-test. In the MOCK_NAMESPACE macro the mocked components
+are declared (and defined) in an anonymous namespace inside the ConcreteThings namespace.
+When the implementation in #included it will be built against these mocked components and
+will itself have been declared in the AbstractThings_test namespace where these components
+can then be accessed.
 
 **MoreAbstractTest.cpp**
 ```cpp
@@ -333,14 +366,14 @@ Why is that better?
 -------------------
 This has the following advantages over the original implementation,
 
-* The implementation was able to use the most natural C++ language features.
+* The implementation is able to use the most natural C++ language features.
 
    In this case it was natural to have a non-virtual class passed as a parameter, by
    value. In other cases we can use language features such as free-functions,
    constructor calls. In fact the full compliment of C++ language features can be
    used and still mocked as needed.
 
-* The interface didn't need to be repeated.
+* There is no need to repeat the interface declaration.
 
    No abstract interface was needed to mock this example. Typically this involves simply
    repeating the declarations already made once in MoreConcrete.h in pure virtual form.
@@ -356,9 +389,15 @@ This has the following advantages over the original implementation,
 
    Runtime polymorphism was not needed and no runtime overhead was added by using it.
 
+* The software structure (e.g design patterns used) can be used to reflect the needs of the software (not the software architecture).
+
+   It is only necessary to use one common architectural pattern to organise the software
+   components and it is quite light weight and doesn't interfere. The software architecture
+   can otherwise reflect the needs of the software entirely.
+
 Are the same advantages still present
 -------------------------------------
-Essentially, yes, I think so.
+Essentially yes, I think they are.
 
 **Several strengths**
 * It's possible to unit-test the components.
@@ -379,5 +418,41 @@ Essentially, yes, I think so.
    early (premature) refactoring of the code base. In the event this refactoring to make
    MoreConcrete into a runtime polymorphic type becomes pertinent this would seem to be
    the best time to implement this change anyway.
+
+* Most compile time incompatibilities between the interface and its consumers are checked.
+
+   If the compile time mock codes interface doesn't mostly match the production codes
+   interface then either the unit-tests or the production code will stop compiling. This
+   will happen despite only the minimal used parts of the production interface needing to
+   be implemented by these mock unit-test cases.
+
+* There is still conceptually a component hierarchy to the source code.
+
+   If we conceptually imagine that the vanilla layer name contains the interface to a
+   component and the implementation version of the layer contains the implementation then
+   the same interfaces are written in the software structure. It just so happens that the
+   interface and implementation are written at once and must be construction match exactly.
+   In most cases the compiler and linker (and the build system) don't require the program
+   to be structured hierarchically anyway and the system can be still be built with the
+   actual dependencies running in both directions however.
+
+Are there some weaknesses?
+--------------------------
+I think there are a couple of small weakness, though they exist even without this pattern.
+
+* It becomes easier when implementing compile time mocks to construct a mock object which is incompatible with the implementation.
+
+   For example one may quite simply add a different default parameter to the mock class. Since
+   the interface invoked during mock unit-testing is the interface of the mock a different
+   default parameter will be used in the unit-tests to the compiled version of the system.
+
+* The direction of the dependencies is actually arbitrary.
+
+   While its nice to think about the software as a hierarchy the segregation of components
+   by detail can easily work in both directions. Just as its possible to separate off a
+   database gateway implementation and mock it for testing you can also mock a set of
+   entities and pass them to a database gateway. Since the mechanism works equally well in
+   any direction the hierarchy to the system (often thought to be running along an axis
+   between concrete and abstract components) can be a pretty fuzzy concept.
    
 Copyright (c) 2018 Nicolas Croad
