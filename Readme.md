@@ -17,7 +17,7 @@ The primary style of architecture motivating this usage is called an Onion or He
 software architecture (though other styles may be supported). In this case the more stable
 (less subject to change) and abstract parts of the software inhabit the inner (lower) layers
 of the software and the more unstable (more subject to change) and concrete parts of the
-software inhabit the outer (upper) layers. It's usually made a requirement for dependencies
+software inhabit the outer (higher) layers. It's usually made a requirement for dependencies
 to only run from the outer layers towards the inner layers and so implementing such a system
 will make regular use of the dependency inversion pattern to make these dependencies be
 correctly directed.
@@ -395,6 +395,16 @@ This has the following advantages over the original implementation,
    components and it is quite light weight and doesn't interfere. The software architecture
    can otherwise reflect the needs of the software entirely.
 
+* The internal dependencies being mocked become exposed by the unit-test.
+
+   Essentially if you want to mock some object and pass it to a component under test and further
+   it will pass it onto another component then you will need to include both these component
+   implementations in writing the unit-test. Its slightly debatable but I think this is a
+   strength of the approach as it discourages writing tests for several components simultaniously.
+   The feedback for not succeeding in including all the code required should also be pretty
+   immediate with an unresolved external symbol linker error being emitted when the unit-test code
+   is being built.
+
 Are the same advantages still present
 -------------------------------------
 Essentially yes, I think they are.
@@ -449,10 +459,18 @@ I think there are a couple of small weakness, though they exist even without thi
 * The direction of the dependencies is actually arbitrary.
 
    While its nice to think about the software as a hierarchy the segregation of components
-   by detail can easily work in both directions. Just as its possible to separate off a
+   into levels of abstraction can easily work in both directions. Just as its possible to separate off a
    database gateway implementation and mock it for testing you can also mock a set of
    entities and pass them to a database gateway. Since the mechanism works equally well in
    any direction the hierarchy to the system (often thought to be running along an axis
    between concrete and abstract components) can be a pretty fuzzy concept.
+
+Conclusions
+-----------
+This is an extremely powerful pattern which can facilitate solutions to many software architecture problems. One its best features would seem to be that it allows for a full use of the natural C++ language constructs. This in turn may facilitate the easy transition from a highly coupled and messy software system (even one without unit-testing hooks) to one with a nicely decoupled architecture and a high degree of test coverage for the code base.
+
+However conceptually it turns a lot of things about good software architecture and writing testable code on their head. The interfaces between software components becomes so light weight that often no interface needs to be written (it is be declaration the interface of the implementation). Also the usual calling cards of testability such as avoiding constructor calls, and avoiding where possible static code or variables, become much less of a difficulty or necessary to support unit-test code. In many cases it seems even possible to see the dependency injection pattern going largely the way of the dodo from the code base. This pattern in particular is not very useful as a software design pattern but is incredibly useful as a unit-testing and architecture pattern.
+
+Having started to use this pattern in some of my better code bases however I would say the results are very promising. The system code becomes more concise, clear and retains the same level of unit-test ability. I think this might indicate that the ways we understand software coupling and testability are not in practice particulary concrete and well defined. The result is that when certain implementation mechanisms change our understanding of, and the ways we visualise coupling can shift, even though the actual dependencies do not.
    
 Copyright (c) 2018 Nicolas Croad
