@@ -90,6 +90,7 @@ public:
         // Do some other thing!
     }    
 };
+```
 
 Now the dependencies point in the desireable direction. One upshot of this is that in order
 to unit-test the MoreAbstract class we can pass it a mock implementation of the
