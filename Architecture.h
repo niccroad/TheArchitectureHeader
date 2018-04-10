@@ -29,6 +29,7 @@
  */
 
 #define ARCH_IMPL_SUFFIX             _impl
+#define ARCH_TEST_SUFFIX             _test
 
 #define JOIN_NAMES(tokenA, tokenB)                 tokenA ## tokenB
 #define JOIN_NAMES_2(tokenA, tokenB)               JOIN_NAMES(tokenA, tokenB)
@@ -58,6 +59,8 @@ ADD_IMPLEMENTATION(Entity);
 
 #endif // ARCH_COMPILING_TESTS
 
+#ifndef ARCH_COMPILING_TESTS
+
 /**
 * This macro should be used to open an architecturally important namespace. Any
 * valid C++ constructs can be wrapped this way, including classes/structs/unions
@@ -83,7 +86,9 @@ ADD_IMPLEMENTATION(Entity);
 */
 #define ARCH_NAMESPACE(layer)               namespace JOIN_NAMES_2(layer, ARCH_IMPL_SUFFIX)
 
-#ifdef ARCH_COMPILING_TESTS
+#else
+
+#define ARCH_NAMESPACE(layer)               namespace JOIN_NAMES_2(layer, ARCH_TEST_SUFFIX)
 
 #define TEST_MOCK_NAMESPACE(layer)                                 \
     namespace layer {                                              \
